@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting App</title>
+    <script>
+        let id = "0"
+        // Function to vote up
+        function voteUp() {
+            if (id == "0") {
+                alert('Invalid card voted on');
+                return
+            }
+            fetch('/upvote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Vote up response:', data);
+                alert(data);
+            })
+            .catch(error => {
+                console.error('Error voting up:', error);
+                alert('Error voting up');
+            });
+        }
+
+        // Function to vote down
+        function voteDown() {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert('Please enter your username');
+                return;
+            }
+            fetch('/vote/down', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username })
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Vote down response:', data);
+                alert(data);
+            })
+            .catch(error => {
+                console.error('Error voting down:', error);
+                alert('Error voting down');
+            });
+        }
+
+        // Function to get vote counts
+        function getVotes() {
+            fetch('/votes')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Vote counts:', data);
+                let voteCounts = '';
+                data.forEach(vote => {
+                    voteCounts += `${vote.VoteType}: ${vote.count}\n`;
+                });
+                alert(voteCounts);
+            })
+            .catch(error => {
+                console.error('Error getting vote counts:', error);
+                alert('Error getting vote counts');
+            });
+        }
+    
+        function newCard() {
+            fetch('/newCard')
+            .then(response => response.json())
+            .then(data => {
+                console.log("New Card:", data);
+
+                for (let key in data[0]) { //Replacing Null values with "N/A"
+                    if (data[0][key] === null) {
+                        data[0][key] = "N/A";
+                }}
+
+                document.getElementById("name").innerHTML = data[0].name
+                document.getElementById("mana").innerHTML = data[0].manaCost
+                document.getElementById("type").innerHTML = data[0].type
+                document.getElementById("subtypes").innerHTML = data[0].subtypes
+                document.getElementById("keywords").innerHTML = data[0].keywords
+                document.getElementById("text").innerHTML = data[0].text
+                document.getElementById("flavorText").innerHTML = data[0].flavorText
+                document.getElementById("power").innerHTML = data[0].power
+                document.getElementById("toughness").innerHTML = data[0].toughness
+                document.getElementById("rarity").innerHTML = data[0].rarity
+                document.getElementById("types").innerHTML = data[0].types
+                document.getElementById("score").innerHTML = data[0].score
+                document.getElementById("votes").innerHTML = data[0].votes
+                id = data[0].id
+            })
+            .catch(error => {
+                console.error("Error getting new card", error);
+                alert("Error recieving card")
+            })
+        }
+    </script>
+</head>
+<body>
+    <h1>Welcome to the Voting App</h1>
+
+    <p>Card Name: <span id="name">Blank</span></p>
+    <p>Mana Cost: <span id="mana">Blank</span></p>
+    <p>Type: <span id="type">Blank</span></p>
+    <p>Subtypes: <span id="subtypes">Blank</span></p>
+    <p>Keywords: <span id="keywords">Blank</span></p>
+    <p>Text: <span id="text">Blank</span></p>
+    <p>Flavor Text: <span id="flavorText">Blank</span></p>
+    <p>Power: <span id="power">Blank</span></p>
+    <p>Toughness: <span id="toughness">Blank</span></p>
+    <p>Rarity: <span id="rarity">Blank</span></p>
+    <p>Types: <span id="types">Blank</span></p>
+    <p>Score: <span id="score">Blank</span></p>
+    <p>Votes: <span id="votes">Blank</span></p>
+
+    <input type="text" id="username" placeholder="Enter your username">
+    <button onclick="newCard()">New Card</button>
+    <button onclick="voteUp()">Vote Up</button>
+    <button onclick="voteDown()">Vote Down</button>
+    <button onclick="getVotes()">Get Vote Counts</button>
+</body>
+</html>
