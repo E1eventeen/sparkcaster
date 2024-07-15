@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const { spawn } = require('child_process');
 const sql = require('mssql');
 
 const app = express();
@@ -22,48 +23,11 @@ const dbConfig = {
         enableArithAbort: true // Enable ArithAbort setting
     }
 };
+
 app.use(express.static('public'));
 
 // Middleware to parse JSON bodies
 app.use(express.json());
-
-// Route to vote up (POST request)
-app.post('/vote/up', async (req, res) => {
-    const { username } = req.body;
-    if (!username) {
-        return res.status(400).send('Username is required');
-    }
-    try {
-        await sql.connect(dbConfig);
-        const request = new sql.Request();
-        await request.query(`INSERT INTO Votes (VoteType, Username) VALUES ('up', '${username}')`);
-        res.send('Vote up recorded');
-    } catch (err) {
-        console.error('Error recording vote up:', err);
-        res.status(500).send('Error recording vote up');
-    } finally {
-        sql.close(); // Close the connection
-    }
-});
-
-// Route to vote down (POST request)
-app.post('/vote/down', async (req, res) => {
-    const { username } = req.body;
-    if (!username) {
-        return res.status(400).send('Username is required');
-    }
-    try {
-        await sql.connect(dbConfig);
-        const request = new sql.Request();
-        await request.query(`INSERT INTO Votes (VoteType, Username) VALUES ('down', '${username}')`);
-        res.send('Vote down recorded');
-    } catch (err) {
-        console.error('Error recording vote down:', err);
-        res.status(500).send('Error recording vote down');
-    } finally {
-        sql.close(); // Close the connection
-    }
-});
 
 //Route to get minimum voted card - TODO: Add other tables
 app.get('/newCard', async (req, res) => {
@@ -71,6 +35,9 @@ app.get('/newCard', async (req, res) => {
         await sql.connect(dbConfig);
         const request = new sql.Request();
         const result = await request.query(`EXECUTE newCard`);
+        id = result.recordset[0].id
+        //console.log(id)
+        await request.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('NewCard', '${id}', NULL, (getdate()))`); //Log card get
         res.json(result.recordset);
     } catch (err) {
         console.error('Error retrieving card:', err);
@@ -95,7 +62,7 @@ app.get('/votes', async (req, res) => {
     }
 });
 
-//Vote based on ID value
+//upVote based on ID value
 app.post('/upvote', async (req, res) => {
     const { id } = req.body;
     if (!id) {
@@ -104,8 +71,9 @@ app.post('/upvote', async (req, res) => {
     try {
         await sql.connect(dbConfig);
         const request = new sql.Request();
-        await request.query(`UPDATE dbo.Artifact SET score = score + 1 WHERE id = '${id};'`);
-        await request.query(`UPDATE dbo.Artifact SET votes = votes + 1 WHERE id = '${id};'`);
+        await request.query(`UPDATE dbo.Artifact SET score = score + 1 WHERE id = '${id};'`); //Incriment score
+        await request.query(`UPDATE dbo.Artifact SET votes = votes + 1 WHERE id = '${id};'`); //Incriment votes
+        await request.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('Vote', NEWID(), 1, (getdate()))`); //Log vote
         res.send('Vote up recorded');
     } catch (err) {
         console.error('Error recording vote up:', err);
@@ -113,9 +81,54 @@ app.post('/upvote', async (req, res) => {
     } finally {
         sql.close(); // Close the connection
     }
+    
 });
 
-// Add a route to handle the root URL
+//downVote based on ID value
+app.post('/downvote', async (req, res) => {
+    const { id } = req.body;
+    if (!id) {
+        return res.status(400).send('Card is required');
+    }
+    try {
+        await sql.connect(dbConfig);
+        const request = new sql.Request();
+        await request.query(`UPDATE dbo.Artifact SET score = score - 1 WHERE id = '${id};'`); //Incriment score
+        await request.query(`UPDATE dbo.Artifact SET votes = votes + 1 WHERE id = '${id};'`); //Incriment votes
+        await request.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('Vote', NEWID(), -1, (getdate()))`); //Log vote
+        res.send('Vote up recorded');
+    } catch (err) {
+        console.error('Error recording vote up:', err);
+        res.status(500).send('Error recording vote up');
+    } finally {
+        sql.close(); // Close the connection
+    }
+    
+});
+
+//Generate card through python script
+app.post('/runPython', async (req, res) => {
+    const cardInfo = JSON.stringify(req.body);
+    //console.log("Python Server:", cardInfo);
+    
+    const pythonProcess = spawn('python3', ['cardGeneration\\cardImage.py', cardInfo]);
+
+    pythonProcess.stdout.on('data', (data) => {
+        //console.log(`stdout: ${data}`);
+        res.send(data.toString());
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`);
+        res.status(500).send(data.toString());
+    });
+
+    pythonProcess.on('close', (code) => {
+        //console.log("Image Generated!");
+    });
+});
+
+//Route to handle the root URL
 app.get('/', (req, res) => {
     res.send('Welcome to the Voting App');
 });
