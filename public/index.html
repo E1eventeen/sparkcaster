@@ -9,6 +9,7 @@
 
         var id = "0";
         var card = {};
+        var text = false;
         
         function voteUp() {
             if (id == "0") {
@@ -73,47 +74,26 @@
             });
         }
     
-        function newCard() {
-            fetch('/newCard')
-            .then(response => response.json())
-            .then(data => {
-                console.log("New Card:", data);
+        async function newCard() {
 
-                for (let key in data[0]) {
-                    if (data[0][key] === null) {
-                        data[0][key] = "N/A";
-                    }
-                }
+            document.getElementById("new").disabled = true;
+            document.getElementById("up").disabled = true;
+            document.getElementById("down").disabled = true;
 
-                document.getElementById("name").innerHTML = data[0].name;
-                document.getElementById("mana").innerHTML = data[0].manaCost;
-                document.getElementById("type").innerHTML = data[0].type;
-                document.getElementById("subtypes").innerHTML = data[0].subtypes;
-                document.getElementById("keywords").innerHTML = data[0].keywords;
-                document.getElementById("text").innerHTML = data[0].text;
-                document.getElementById("flavorText").innerHTML = data[0].flavorText;
-                document.getElementById("power").innerHTML = data[0].power;
-                document.getElementById("toughness").innerHTML = data[0].toughness;
-                document.getElementById("rarity").innerHTML = data[0].rarity;
-                document.getElementById("types").innerHTML = data[0].types;
-                document.getElementById("score").innerHTML = data[0].score;
-                document.getElementById("votes").innerHTML = data[0].votes;
-                id = data[0].id;
-                card = data[0];
-                //console.log("Card data:", card)
-                runPython();
-            })
-            .catch(error => {
-                console.error("Error getting new card", error);
-                alert("Error receiving card");
-            });
-        }
+            const response = await fetch('/newCard')
+            const data = await response.json()
 
-        function runPython() {
+            if (!data[0]) {
+                throw new Error('No card data received');
+            }
+
+            card = data[0];
+            id = data[0].id;
+            
             //console.log("Runpython: ", card);
             //console.log("String: ", JSON.stringify(card));
 
-            fetch('/runPython', {
+            const response2 = await fetch('/runPython', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -124,21 +104,63 @@
             .then(response => response.text())
             .then(data => {
                 //console.log('Python script output:', data);
+                if (data.toString() !== "No Errors :)") {
+                    console.log("Python Error: ", data.toString())
+                }
                 //console.log(card.id)
-                document.getElementById('cardImage').src = `cards//${card.id}.png`;
+                document.getElementById('cardImage').src = `cards/${card.id}.png`;
             })
             .catch(error => {
                 console.error('Error running Python script:', error);
             });
+
+            document.getElementById("name").innerHTML = data[0].name;
+            document.getElementById("mana").innerHTML = data[0].manaCost;
+            document.getElementById("type").innerHTML = data[0].type;
+            document.getElementById("subtypes").innerHTML = data[0].subtypes;
+            document.getElementById("keywords").innerHTML = data[0].keywords;
+            document.getElementById("text").innerHTML = data[0].text;
+            document.getElementById("flavorText").innerHTML = data[0].flavorText;
+            document.getElementById("power").innerHTML = data[0].power;
+            document.getElementById("toughness").innerHTML = data[0].toughness;
+            document.getElementById("rarity").innerHTML = data[0].rarity;
+            document.getElementById("types").innerHTML = data[0].types;
+            document.getElementById("score").innerHTML = data[0].score;
+            document.getElementById("votes").innerHTML = data[0].votes;
+            
+
+            document.getElementById("new").disabled = false;
+            document.getElementById("up").disabled = false;
+            document.getElementById("down").disabled = false;
         }
 
-        newCard()
+        function toggleText() {
+            if (text) {
+                text = false;
+                document.getElementById("toggleText").innerHTML = "Show Text";
+                document.getElementById("imageBox").setAttribute("style", "display: block;");
+                document.getElementById("textBox").setAttribute("style", "display: none;");
+            }
+            else {
+                text = true;
+                document.getElementById("toggleText").innerHTML = "Show Image";
+                document.getElementById("textBox").setAttribute("style", "display: block;");
+                document.getElementById("imageBox").setAttribute("style", "display: none;");
+            }
+
+        }
+        
+        //newCard()
+        
     </script>
 </head>
 <body>
     <h1>SparkCaster</h1>
     <div class="display">
-        <div class="displayBox">
+        <div class="displayBox", id = "imageBox", style="display: block;">
+            <img src="blankCard.png" alt="Blank Card", id="cardImage">
+        </div>
+        <div class="displayBox", id = "textBox", style="display: none;">
             <p>Card Name: <span id="name">Blank</span></p>
             <p>Mana Cost: <span id="mana">Blank</span></p>
             <p>Type: <span id="type">Blank</span></p>
@@ -153,15 +175,12 @@
             <p>Score: <span id="score">Blank</span></p>
             <p>Votes: <span id="votes">Blank</span></p>
         </div>
-
-        <div class="displayBox">
-            <img src="blankCard.png" alt="Blank Card", id="cardImage">
-        </div>
     </div>
 
-    <button onclick="newCard()">New Card</button>
-    <button onclick="voteUp()">Vote Up</button>
-    <button onclick="voteDown()">Vote Down</button>
-    <button onclick="runPython()">Run Python</button>
+    <button id="new" onclick="newCard()">New Card</button>
+    <button id="up" onclick="voteUp()">Vote Up</button>
+    <button id="down" onclick="voteDown()">Vote Down</button>
+    <button id="toggleText" onclick="toggleText()">Show Text</button>
+    <!--<button id="python" onclick="runPython()">Run Python</button>-->
 </body>
 </html>

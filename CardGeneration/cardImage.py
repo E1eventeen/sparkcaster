@@ -9,6 +9,7 @@ def image(dat, hasImage = False, output = "output"):
     if type(dat) is str:
         dat = dat.replace('""', '"')
         dat = dat.replace("N/A", "")
+        dat = dat.replace('\\"', "'")
         dat = eval(dat)
 
     if not "name" in dat:
@@ -79,7 +80,11 @@ def image(dat, hasImage = False, output = "output"):
         keyWords += keyWord + ", "
     keyWords = keyWords[:-2]
 
-    bodyText = [keyWords] + [dat["text"]]
+    bodyTextSpace = [keyWords] + [dat["text"]]
+    bodyText = []
+
+    for line in bodyTextSpace:
+        bodyText.extend(line.split("\\n"))
 
     for line in bodyText:
         while True:
@@ -96,18 +101,19 @@ def image(dat, hasImage = False, output = "output"):
         cursorY += 10
 
     cursorY += 20
-    line = '"' + dat["flavorText"] + '"'
-    fontBody = ImageFont.truetype("comici.ttf", 24)
-    while True:
-        cursorY += 25
-        last_space = line.rfind(' ', 0, TEXT_WIDTH)
-        if last_space == -1 or len(line) <= TEXT_WIDTH:
-            break
-        draw.text((104, cursorY), line[:last_space], (0, 0, 0), font=fontBody)
-        line = line[last_space + 1:]
-        
-    if line:
-        draw.text((104, cursorY), line, (0, 0, 0), font=fontBody)
+    if dat["flavorText"] != "":
+        line = '"' + dat["flavorText"] + '"'
+        fontBody = ImageFont.truetype("comici.ttf", 24)
+        while True:
+            cursorY += 25
+            last_space = line.rfind(' ', 0, TEXT_WIDTH)
+            if last_space == -1 or len(line) <= TEXT_WIDTH:
+                break
+            draw.text((104, cursorY), line[:last_space], (0, 0, 0), font=fontBody)
+            line = line[last_space + 1:]
+            
+        if line:
+            draw.text((104, cursorY), line, (0, 0, 0), font=fontBody)
 
     #Paste Mana Icons
 
@@ -168,6 +174,11 @@ def image(dat, hasImage = False, output = "output"):
     return img
 
 #image(gptConnect.getMagicCard(input("Describe your magic card: ")), hasImage = False)
-image(sys.argv[1], output = "public//cards//" + eval(sys.argv[1])["id"])
 
-print("Made card! :)")
+try:
+    null = ""
+    image(sys.argv[1], output = "public//cards//" + eval(sys.argv[1])["id"])
+    print("No errors! :)")
+except Exception as e:
+    print(repr(e))
+

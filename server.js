@@ -114,11 +114,11 @@ app.post('/runPython', async (req, res) => {
     const pythonProcess = spawn('python3', ['cardGeneration\\cardImage.py', cardInfo]);
 
     pythonProcess.stdout.on('data', (data) => {
-        //console.log(`stdout: ${data}`);
         res.send(data.toString());
     });
 
     pythonProcess.stderr.on('data', (data) => {
+        console.log(data.toString());
         console.error(`stderr: ${data}`);
         res.status(500).send(data.toString());
     });
