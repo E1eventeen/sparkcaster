@@ -2,6 +2,7 @@ from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import os, random, re, sys
+from unicodedata import normalize
 
 TEXT_WIDTH = 60
 
@@ -9,7 +10,8 @@ def image(dat, hasImage = False, output = "output"):
     if type(dat) is str:
         dat = dat.replace('""', '"')
         dat = dat.replace("N/A", "")
-        dat = dat.replace('\\"', "'")
+        dat = dat.replace('\\\"', "'")
+        dat = normalize('NFKD', dat).encode('utf-8')
         dat = eval(dat)
 
     if not "name" in dat:
@@ -102,18 +104,21 @@ def image(dat, hasImage = False, output = "output"):
 
     cursorY += 20
     if dat["flavorText"] != "":
-        line = '"' + dat["flavorText"] + '"'
         fontBody = ImageFont.truetype("comici.ttf", 24)
-        while True:
-            cursorY += 25
-            last_space = line.rfind(' ', 0, TEXT_WIDTH)
-            if last_space == -1 or len(line) <= TEXT_WIDTH:
-                break
-            draw.text((104, cursorY), line[:last_space], (0, 0, 0), font=fontBody)
-            line = line[last_space + 1:]
+        flavorTextLines = dat["flavorText"].split('\n')
+        for flavorText in flavorTextLines:
+            line = '"' + flavorText + '"'
+            while True:
+                cursorY += 25
+                last_space = line.rfind(' ', 0, TEXT_WIDTH)
+                if last_space == -1 or len(line) <= TEXT_WIDTH:
+                    break
+                draw.text((104, cursorY), line[:last_space], (0, 0, 0), font=fontBody)
+                line = line[last_space + 1:]
             
-        if line:
-            draw.text((104, cursorY), line, (0, 0, 0), font=fontBody)
+            if line:
+                draw.text((104, cursorY), line, (0, 0, 0), font=fontBody)
+            cursorY += 25
 
     #Paste Mana Icons
 

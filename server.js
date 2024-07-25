@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const { spawn } = require('child_process');
 const sql = require('mssql');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const port = 3000;
@@ -108,25 +110,63 @@ app.post('/downvote', async (req, res) => {
 
 //Generate card through python script
 app.post('/runPython', async (req, res) => {
-    const cardInfo = JSON.stringify(req.body);
-    //console.log("Python Server:", cardInfo);
+    const replaceQuotes = (obj) => {                                                                //Remove " from JSON
+        if (typeof obj === 'string') {
+          return obj.replace(/"/g, "'");
+        } else if (Array.isArray(obj)) {
+          return obj.map(item => replaceQuotes(item));
+        } else if (typeof obj === 'object' && obj !== null) {
+          const newObj = {};
+          for (const key in obj) {
+            newObj[key] = replaceQuotes(obj[key]);
+          }
+          return newObj;
+        }
+        return obj;
+      };
+    const cardInfo = JSON.stringify(replaceQuotes(req.body)); 
     
-    const pythonProcess = spawn('python3', ['cardGeneration\\cardImage.py', cardInfo]);
-
-    pythonProcess.stdout.on('data', (data) => {
+    const pythonProcess = spawn('python3', ['cardGeneration\\cardImage.py', cardInfo]);             //Spawn Child Process
+    pythonProcess.stdout.on('data', (data) => {                                                     //Success Case
         res.send(data.toString());
     });
 
-    pythonProcess.stderr.on('data', (data) => {
+    pythonProcess.stderr.on('data', (data) => {                                                     //Error Case
         console.log(data.toString());
         console.error(`stderr: ${data}`);
         res.status(500).send(data.toString());
     });
 
-    pythonProcess.on('close', (code) => {
+    pythonProcess.on('close', (code) => {                                                           //Finally
         //console.log("Image Generated!");
     });
 });
+
+app.get('/cleanup', (req, res) => {
+    const directoryPath = path.join(__dirname, 'public//cards//');
+
+    fs.readdir(directoryPath, (err, files) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Error reading directory');
+            return;
+        }
+
+        files.forEach(file => {
+            const filePath = path.join(directoryPath, file);
+            fs.unlink(filePath, err => {
+                if (err) {
+                    console.error(`Error deleting file: ${filePath}`);
+                } else {
+                    console.log(`Deleted file: ${filePath}`);
+                }
+            });
+        });
+
+        res.send('Cleanup completed');
+    });
+});
+
 
 //Route to handle the root URL
 app.get('/', (req, res) => {

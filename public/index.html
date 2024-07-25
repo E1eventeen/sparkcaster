@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
-    <title>Voting App</title>
+    <title>SparkCaster</title>
     <script>
 
         var id = "0";
@@ -79,6 +79,12 @@
             document.getElementById("new").disabled = true;
             document.getElementById("up").disabled = true;
             document.getElementById("down").disabled = true;
+            document.getElementById("toggleText").disabled = true;
+
+            document.getElementById("textBox").setAttribute("style", "display: none;");
+            document.getElementById("imageBox").setAttribute("style", "display: none;");
+            document.getElementById("loadingBox").setAttribute("style", "display: block;");
+            text = !text;
 
             const response = await fetch('/newCard')
             const data = await response.json()
@@ -132,6 +138,10 @@
             document.getElementById("new").disabled = false;
             document.getElementById("up").disabled = false;
             document.getElementById("down").disabled = false;
+            document.getElementById("toggleText").disabled = false;
+
+            document.getElementById("loadingBox").setAttribute("style", "display: none;");
+            toggleText();
         }
 
         function toggleText() {
@@ -150,12 +160,21 @@
 
         }
         
-        //newCard()
+        function cleanUp() {
+            const response = fetch('/cleanup')
+        }
+        
+        function generate() {
+            const card = document.getElementById("cname").value;
+            console.log(card)
+        }
         
     </script>
+    <div class = heading>
+        <h1>SparkCaster</h1>
+    </div>
 </head>
 <body>
-    <h1>SparkCaster</h1>
     <div class="display">
         <div class="displayBox", id = "imageBox", style="display: block;">
             <img src="blankCard.png" alt="Blank Card", id="cardImage">
@@ -175,12 +194,24 @@
             <p>Score: <span id="score">Blank</span></p>
             <p>Votes: <span id="votes">Blank</span></p>
         </div>
+        <div class="displayBox", id = "loadingBox", style="display:none;">
+            <p>Loading</p>
+        </div>
     </div>
-
-    <button id="new" onclick="newCard()">New Card</button>
-    <button id="up" onclick="voteUp()">Vote Up</button>
-    <button id="down" onclick="voteDown()">Vote Down</button>
-    <button id="toggleText" onclick="toggleText()">Show Text</button>
-    <!--<button id="python" onclick="runPython()">Run Python</button>-->
+    <div class = "buttons">
+        <button id="new" onclick="newCard()">New Card</button>
+        <button id="up" onclick="voteUp()">Vote Up</button>
+        <button id="down" onclick="voteDown()">Vote Down</button>
+        <button id="toggleText" onclick="toggleText()">Show Text</button>
+        <button id="cleanup" onclick="cleanUp()">Clean Files</button>
+        <br><br>
+        <label for="cname">Card Name:</label>
+        <input type="text" id="cname" name="cname">
+        <button id="generate" onclick="generate()">Generate Card</button>
+    </div>
 </body>
+<script> newCard() </script>
+<footer>
+    <p>© 2024 Sparkcaster. Created by Jadon Watson and Kyle Meade. This project is based on Magic: The Gathering, and is not intended to infringe on any copyrights. Sparkcaster is a capstone project for Wentworth Institute of Technology.</p>
+  </footer>  
 </html>
