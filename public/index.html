@@ -5,171 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
     <title>SparkCaster</title>
-    <script>
-
-        var id = "0";
-        var card = {};
-        var text = false;
-        
-        function voteUp() {
-            if (id == "0") {
-                alert('Invalid card voted on');
-                return;
-            }
-            fetch('/upvote', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id: id })
-            })
-            .then(response => response.text())
-            .then(data => {
-                console.log('Upvoted card with ID: ', id)
-            })
-            .catch(error => {
-                console.error('Error voting up:', error);
-                alert('Error voting up');
-            });
-            newCard()
-        }
-
-        function voteDown() {
-            if (id == "0") {
-                alert('Invalid card voted on');
-                return;
-            }
-            fetch('/downvote', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id: id })
-            })
-            .then(response => response.text())
-            .then(data => {
-                console.log('Downvoted card with ID: ', id)
-            })
-            .catch(error => {
-                console.error('Error voting up:', error);
-                alert('Error voting up');
-            });
-            newCard()
-        }
-
-        function getVotes() {
-            fetch('/votes')
-            .then(response => response.json())
-            .then(data => {
-                console.log('Vote counts:', data);
-                let voteCounts = '';
-                data.forEach(vote => {
-                    voteCounts += `${vote.VoteType}: ${vote.count}\n`;
-                });
-                alert(voteCounts);
-            })
-            .catch(error => {
-                console.error('Error getting vote counts:', error);
-                alert('Error getting vote counts');
-            });
-        }
-    
-        async function newCard() {
-
-            document.getElementById("new").disabled = true;
-            document.getElementById("up").disabled = true;
-            document.getElementById("down").disabled = true;
-            document.getElementById("toggleText").disabled = true;
-
-            document.getElementById("textBox").setAttribute("style", "display: none;");
-            document.getElementById("imageBox").setAttribute("style", "display: none;");
-            document.getElementById("loadingBox").setAttribute("style", "display: block;");
-            text = !text;
-
-            const response = await fetch('/newCard')
-            const data = await response.json()
-
-            if (!data[0]) {
-                throw new Error('No card data received');
-            }
-
-            card = data[0];
-            id = data[0].id;
-            
-            //console.log("Runpython: ", card);
-            //console.log("String: ", JSON.stringify(card));
-
-            const response2 = await fetch('/runPython', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(card)
-            })
-            
-            .then(response => response.text())
-            .then(data => {
-                //console.log('Python script output:', data);
-                if (data.toString() !== "No Errors :)") {
-                    console.log("Python Error: ", data.toString())
-                }
-                //console.log(card.id)
-                document.getElementById('cardImage').src = `cards/${card.id}.png`;
-            })
-            .catch(error => {
-                console.error('Error running Python script:', error);
-            });
-
-            document.getElementById("name").innerHTML = data[0].name;
-            document.getElementById("mana").innerHTML = data[0].manaCost;
-            document.getElementById("type").innerHTML = data[0].type;
-            document.getElementById("subtypes").innerHTML = data[0].subtypes;
-            document.getElementById("keywords").innerHTML = data[0].keywords;
-            document.getElementById("text").innerHTML = data[0].text;
-            document.getElementById("flavorText").innerHTML = data[0].flavorText;
-            document.getElementById("power").innerHTML = data[0].power;
-            document.getElementById("toughness").innerHTML = data[0].toughness;
-            document.getElementById("rarity").innerHTML = data[0].rarity;
-            document.getElementById("types").innerHTML = data[0].types;
-            document.getElementById("score").innerHTML = data[0].score;
-            document.getElementById("votes").innerHTML = data[0].votes;
-            
-
-            document.getElementById("new").disabled = false;
-            document.getElementById("up").disabled = false;
-            document.getElementById("down").disabled = false;
-            document.getElementById("toggleText").disabled = false;
-
-            document.getElementById("loadingBox").setAttribute("style", "display: none;");
-            toggleText();
-        }
-
-        function toggleText() {
-            if (text) {
-                text = false;
-                document.getElementById("toggleText").innerHTML = "Show Text";
-                document.getElementById("imageBox").setAttribute("style", "display: block;");
-                document.getElementById("textBox").setAttribute("style", "display: none;");
-            }
-            else {
-                text = true;
-                document.getElementById("toggleText").innerHTML = "Show Image";
-                document.getElementById("textBox").setAttribute("style", "display: block;");
-                document.getElementById("imageBox").setAttribute("style", "display: none;");
-            }
-
-        }
-        
-        function cleanUp() {
-            const response = fetch('/cleanup')
-        }
-        
-        function generate() {
-            const card = document.getElementById("cname").value;
-            console.log(card)
-        }
-        
-    </script>
+    <script src="script.js"></script>
     <div class = heading>
         <h1>SparkCaster</h1>
     </div>
@@ -199,19 +35,31 @@
         </div>
     </div>
     <div class = "buttons">
-        <button id="new" onclick="newCard()">New Card</button>
+        <button id="new" onclick="loadCard()">New Card</button>
         <button id="up" onclick="voteUp()">Vote Up</button>
         <button id="down" onclick="voteDown()">Vote Down</button>
         <button id="toggleText" onclick="toggleText()">Show Text</button>
         <button id="cleanup" onclick="cleanUp()">Clean Files</button>
         <br><br>
-        <label for="cname">Card Name:</label>
-        <input type="text" id="cname" name="cname">
-        <button id="generate" onclick="generate()">Generate Card</button>
+        <div class = "generateButtons">
+            <label for="selectType">Card Type:</label>
+            <select name="Select Type:" id="selectType">
+                <option value="Creature">Creature</option>
+                <option value="Artifact">Artifact</option>
+                <option value="Enchantment">Enchantment</option>
+                <option value="Sorcery">Sorcery</option>
+                <option value="Instant">Instant</option>
+            </select>
+
+            <label for="cname">Card Name:</label>
+            <input type="text" id="cname" name="cname">
+            
+            <button id="generate" onclick="generate()">Generate Card</button>
+        </div>
     </div>
 </body>
-<script> newCard() </script>
 <footer>
+    <script> loadCard() </script> <!--Load image on startup-->
     <p>© 2024 Sparkcaster. Created by Jadon Watson and Kyle Meade. This project is based on Magic: The Gathering, and is not intended to infringe on any copyrights. Sparkcaster is a capstone project for Wentworth Institute of Technology.</p>
   </footer>  
 </html>

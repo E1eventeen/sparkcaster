@@ -4,9 +4,11 @@ const { spawn } = require('child_process');
 const sql = require('mssql');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 const app = express();
 const port = 3000;
+const apiKey = process.env.API_KEY;
 
 // Debugging: Log environment variables
 console.log('DB_USER:', process.env.DB_USER);
@@ -175,4 +177,51 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/`);
+});
+
+app.post('/generate', async (req, res) => {
+    let { prompt } = req.body;
+
+    if (!prompt) {
+        return res.status(400).send({ error: 'Prompt is required' });
+    }
+
+    prompt = prompt.replace("'","") //Cleaning Data
+
+    try {//TODO
+        const query = `Generate JSON for a Magic: The Gathering Card in the following format using plaintext. Add no other information. {"name": "Brotherhood Scribe","manaCost": "{1}{W}","type": "Creature Human Artificer","subtypes": "Human, Artificer","keywords": "Metalcraft","text": "Card Text","flavorText": "I'm a cool guy!","power": "1","toughness": "3","rarity": "rare","types": "Creature"} Generate it with the following name: `
+        
+        const response = await axios.post(
+            'https://api.openai.com/v1/chat/completions',
+            {
+                model: 'gpt-4o-mini', // or the model you are using
+                messages: [{ role: 'user', content: [query, prompt].join("") }],
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        let reply = response.data.choices[0].message.content;
+
+        console.log(reply)
+        
+        const cardJSON = JSON.parse(reply.replace("'", "")); //bandaid fix
+        
+        await sql.connect(dbConfig);
+        const sqlRequest = new sql.Request();
+        const sqlResult = await sqlRequest.query(`INSERT INTO [dbo].[Artifact] (name, manaCost, type, subtypes, keywords, text, flavorText, power, toughness, rarity, types, custom) OUTPUT inserted.id VALUES ('${cardJSON.name}', '${cardJSON.manaCost}', '${cardJSON.type}', '${cardJSON.subtypes}', '${cardJSON.keywords}', '${cardJSON.text}', '${cardJSON.flavorText}', '${cardJSON.power}', '${cardJSON.toughness}', '${cardJSON.rarity}', '${cardJSON.types}', (1))`);
+        id = await sqlResult.recordset[0].id
+        await sqlRequest.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('Generate', '${id}', null, (getdate()))`);
+        
+        cardJSON["id"] = id;
+        console.log("ID: ", cardJSON.id)
+        res.send(cardJSON);
+    } catch (error) {
+        console.error('Error querying ChatGPT:', error);
+        res.status(500).send({ error: 'Error querying ChatGPT' });
+    }
 });

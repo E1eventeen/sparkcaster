@@ -5,6 +5,7 @@ import os, random, re, sys
 from unicodedata import normalize
 
 TEXT_WIDTH = 60
+LINE_HEIGHT = 25
 
 def image(dat, hasImage = False, output = "output"):
     if type(dat) is str:
@@ -69,8 +70,14 @@ def image(dat, hasImage = False, output = "output"):
     fontType = ImageFont.truetype("comic.ttf", 42)
     draw.text((96, 766),dat["type"],(0,0,0),font=fontType)
 
+    try:
+        dat["power"] = str(int(dat["power"]))
+        dat["toughness"] = str(int(dat["toughness"]))
+    except:
+        pass
+
     #Write Card Power / Toughness
-    if dat["power"] != "" and dat["toughness"] != "":
+    if not ((dat["power"] == "" and dat["toughness"] == "") or (str(dat["power"]) == "0" and str(dat["toughness"]) == "0")):
         draw.text((773, 1212),str(dat["power"]) + "/" + str(dat["toughness"]),(0,0,0),font=fontType)
 
     #Write Main Body
@@ -89,18 +96,28 @@ def image(dat, hasImage = False, output = "output"):
         bodyText.extend(line.split("\\n"))
 
     for line in bodyText:
-        while True:
-            cursorY += 25
-            last_space = line.rfind(' ', 0, TEXT_WIDTH)
-            if last_space == -1 or len(line) <= TEXT_WIDTH:
-                break
-            draw.text((104, cursorY), line[:last_space], (0, 0, 0), font=fontBody)
-            line = line[last_space + 1:]
-            
-        if line:
-            draw.text((104, cursorY), line, (0, 0, 0), font=fontBody)
+        # Handle unicode and newlines
+        line = bytes(line, 'utf-8').decode("unicode_escape")
+        sublines = line.split("\n")
+        
+        for subline in sublines:
+            last_space = subline.rfind(' ', 0, TEXT_WIDTH)
+            while subline:
+                # Find the position to wrap the line
+                last_space = subline.rfind(' ', 0, TEXT_WIDTH)
+                
+                if last_space == -1 or len(subline) <= TEXT_WIDTH:
+                    draw.text((104, cursorY), subline, (0, 0, 0), font=fontBody)
+                    cursorY += LINE_HEIGHT
+                    break
 
-        cursorY += 10
+                # Draw the subline and adjust the remaining text
+                draw.text((104, cursorY), subline[:last_space], (0, 0, 0), font=fontBody)
+                subline = subline[last_space + 1:]
+                cursorY += LINE_HEIGHT
+
+    # Add extra space after the paragraph or original line
+    cursorY += LINE_HEIGHT
 
     cursorY += 20
     if dat["flavorText"] != "":
@@ -181,8 +198,9 @@ def image(dat, hasImage = False, output = "output"):
 #image(gptConnect.getMagicCard(input("Describe your magic card: ")), hasImage = False)
 
 try:
+    data = sys.argv[1].replace("```","").replace("json","").replace("'","^")
     null = ""
-    image(sys.argv[1], output = "public//cards//" + eval(sys.argv[1])["id"])
+    image(data, output = "public//cards//" + eval(data)["id"])
     print("No errors! :)")
 except Exception as e:
     print(repr(e))
