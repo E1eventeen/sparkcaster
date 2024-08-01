@@ -13,7 +13,9 @@
 </head>
 <body>
     <div class="display">
-        <div class="displayBox", id = "upvoteBox"></div>
+        <div class="displayBox", id = "downvoteBox">
+            <button id="down" onclick="voteDown()">This card is not well-made.</button>
+        </div>
 
         <div class="displayBox", id = "imageBox">
             <img src="blankCard.png" alt="Blank Card", id="cardImage">
@@ -37,15 +39,17 @@
             <p>Loading...</p>
         </div>
 
-        <div class="displayBox", id = "upvoteBox"></div>
+        <div class="displayBox", id = "upvoteBox">
+            <button id="up" onclick="voteUp()">This is a good card!</button>
+        </div>
     </div>
     <div class = "buttons">
         <button id="new" onclick="loadCard()">New Card</button>
-        <button id="up" onclick="voteUp()">Vote Up</button>
-        <button id="down" onclick="voteDown()">Vote Down</button>
+        <!--<button id="up" onclick="voteUp()">Vote Up</button>
+        <button id="down" onclick="voteDown()">Vote Down</button>-->
         <button id="toggleText" onclick="toggleText()">Show Text</button>
-        <button id="cleanup" onclick="cleanUp()">Clean Files</button>
-        <button id="refreshArt" onclick="loadCard(id)">Refresh Art</button>
+        <!--<button id="cleanup" onclick="cleanUp()">Clean Files</button>
+        <button id="refreshArt" onclick="loadCard(id)">Refresh Art</button>-->
         <br><br>
         <div class = "generateButtons">
             <label for="selectType">Card Type:</label>
