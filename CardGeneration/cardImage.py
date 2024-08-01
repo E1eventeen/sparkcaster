@@ -4,12 +4,11 @@ from PIL import ImageDraw
 import os, random, re, sys
 from unicodedata import normalize
 
-TEXT_WIDTH = 60
-LINE_HEIGHT = 25
+TEXT_WIDTH = 40
+LINE_HEIGHT = 35
 
 def image(dat, hasImage = False, output = "output"):
     if type(dat) is str:
-        dat = dat.replace('""', '"')
         dat = dat.replace("N/A", "")
         dat = dat.replace('\\\"', "'")
         dat = normalize('NFKD', dat).encode('utf-8')
@@ -59,7 +58,7 @@ def image(dat, hasImage = False, output = "output"):
     draw = ImageDraw.Draw(img)
 
     if len(dat["name"]) > 15:
-        size = 32
+        size = 42
         fontName = ImageFont.truetype("comicbd.ttf", size)
         draw.text((96, 76 + (42 - size)),dat["name"],(0,0,0),font=fontName)
     else:
@@ -69,6 +68,9 @@ def image(dat, hasImage = False, output = "output"):
     #Write Card Type
     fontType = ImageFont.truetype("comic.ttf", 42)
     draw.text((96, 766),dat["type"],(0,0,0),font=fontType)
+
+    dat["power"] = dat["power"].replace("\t","").replace(" ","")
+    dat["toughness"] = dat["toughness"].replace("\t","").replace(" ","")
 
     try:
         dat["power"] = str(int(dat["power"]))
@@ -82,11 +84,11 @@ def image(dat, hasImage = False, output = "output"):
 
     #Write Main Body
     cursorY = 864
-    fontBody = ImageFont.truetype("comic.ttf", 24)
-    
+    fontBody = ImageFont.truetype("comic.ttf", 35)
+
     keyWords = "" 
     for keyWord in dat["keywords"].split(" "):
-        keyWords += keyWord + ", "
+        keyWords += keyWord.replace(",","") + ", "
     keyWords = keyWords[:-2]
 
     bodyTextSpace = [keyWords] + [dat["text"]]
@@ -117,7 +119,7 @@ def image(dat, hasImage = False, output = "output"):
                 cursorY += LINE_HEIGHT
 
     # Add extra space after the paragraph or original line
-    cursorY += LINE_HEIGHT
+    cursorY += LINE_HEIGHT * 0.5
 
     cursorY += 20
     if dat["flavorText"] != "":
@@ -181,7 +183,16 @@ def image(dat, hasImage = False, output = "output"):
     if hasImage:
         pass #Can use if custom images are supported
     else:
-        cardArt = Image.open("CardGeneration//Van.gogh.paintings//" + random.choice(os.listdir("CardGeneration//Van.gogh.paintings//")))
+        foundTag = False
+        for cardType in ["Artifact", "Creature", "Enchantment", "Instant", "Sorcery"]:
+            if cardType in dat["type"]:
+                src = f"CardGeneration//CardArt//{cardType}//" + random.choice(os.listdir(f"CardGeneration//CardArt//{cardType}//"))
+                #print(src)
+                cardArt = Image.open(src)
+                foundTag = True
+
+        if not foundTag:
+            cardArt = Image.open("CardGeneration//Van.gogh.paintings//" + random.choice(os.listdir("CardGeneration//Van.gogh.paintings//")))
     
     cardArt = cardArt.resize((808, 593), Image.LANCZOS)
     #cardArt = cardArt.crop((0, 28, 808, 780))

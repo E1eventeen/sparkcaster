@@ -8,7 +8,6 @@ const axios = require('axios');
 
 const app = express();
 const port = 3000;
-const apiKey = process.env.API_KEY;
 
 // Debugging: Log environment variables
 console.log('DB_USER:', process.env.DB_USER);
@@ -69,14 +68,15 @@ app.get('/votes', async (req, res) => {
 //upVote based on ID value
 app.post('/upvote', async (req, res) => {
     const { id } = req.body;
+    const { type } = req.body;
     if (!id) {
         return res.status(400).send('Card is required');
     }
     try {
         await sql.connect(dbConfig);
         const request = new sql.Request();
-        await request.query(`UPDATE dbo.Artifact SET score = score + 1 WHERE id = '${id};'`); //Incriment score
-        await request.query(`UPDATE dbo.Artifact SET votes = votes + 1 WHERE id = '${id};'`); //Incriment votes
+        await request.query(`UPDATE dbo.${type} SET score = score + 1 WHERE id = '${id};'`); //Incriment score
+        await request.query(`UPDATE dbo.${type} SET votes = votes + 1 WHERE id = '${id};'`); //Incriment votes
         await request.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('Vote', NEWID(), 1, (getdate()))`); //Log vote
         res.send('Vote up recorded');
     } catch (err) {
@@ -91,14 +91,15 @@ app.post('/upvote', async (req, res) => {
 //downVote based on ID value
 app.post('/downvote', async (req, res) => {
     const { id } = req.body;
+    const { type } = req.body;
     if (!id) {
         return res.status(400).send('Card is required');
     }
     try {
         await sql.connect(dbConfig);
         const request = new sql.Request();
-        await request.query(`UPDATE dbo.Artifact SET score = score - 1 WHERE id = '${id};'`); //Incriment score
-        await request.query(`UPDATE dbo.Artifact SET votes = votes + 1 WHERE id = '${id};'`); //Incriment votes
+        await request.query(`UPDATE dbo.${type} SET score = score - 1 WHERE id = '${id};'`); //Incriment score
+        await request.query(`UPDATE dbo.${type} SET votes = votes + 1 WHERE id = '${id};'`); //Incriment votes
         await request.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('Vote', NEWID(), -1, (getdate()))`); //Log vote
         res.send('Vote up recorded');
     } catch (err) {
@@ -112,21 +113,9 @@ app.post('/downvote', async (req, res) => {
 
 //Generate card through python script
 app.post('/runPython', async (req, res) => {
-    const replaceQuotes = (obj) => {                                                                //Remove " from JSON
-        if (typeof obj === 'string') {
-          return obj.replace(/"/g, "'");
-        } else if (Array.isArray(obj)) {
-          return obj.map(item => replaceQuotes(item));
-        } else if (typeof obj === 'object' && obj !== null) {
-          const newObj = {};
-          for (const key in obj) {
-            newObj[key] = replaceQuotes(obj[key]);
-          }
-          return newObj;
-        }
-        return obj;
-      };
-    const cardInfo = JSON.stringify(replaceQuotes(req.body)); 
+
+    const cardInfo = JSON.stringify(req.body); 
+    //console.log(`RunPythonX: [${cardInfo}]`)
     
     const pythonProcess = spawn('python3', ['cardGeneration\\cardImage.py', cardInfo]);             //Spawn Child Process
     pythonProcess.stdout.on('data', (data) => {                                                     //Success Case
@@ -160,7 +149,7 @@ app.get('/cleanup', (req, res) => {
                 if (err) {
                     console.error(`Error deleting file: ${filePath}`);
                 } else {
-                    console.log(`Deleted file: ${filePath}`);
+                    //console.log(`Deleted file: ${filePath}`);
                 }
             });
         });
@@ -181,6 +170,10 @@ app.listen(port, () => {
 
 app.post('/generate', async (req, res) => {
     let { prompt } = req.body;
+    let { type } = req.body;
+    
+    //console.log(prompt)
+    //console.log(type)
 
     if (!prompt) {
         return res.status(400).send({ error: 'Prompt is required' });
@@ -188,40 +181,107 @@ app.post('/generate', async (req, res) => {
 
     prompt = prompt.replace("'","") //Cleaning Data
 
-    try {//TODO
-        const query = `Generate JSON for a Magic: The Gathering Card in the following format using plaintext. Add no other information. {"name": "Brotherhood Scribe","manaCost": "{1}{W}","type": "Creature Human Artificer","subtypes": "Human, Artificer","keywords": "Metalcraft","text": "Card Text","flavorText": "I'm a cool guy!","power": "1","toughness": "3","rarity": "rare","types": "Creature"} Generate it with the following name: `
-        
-        const response = await axios.post(
-            'https://api.openai.com/v1/chat/completions',
-            {
-                model: 'gpt-4o-mini', // or the model you are using
-                messages: [{ role: 'user', content: [query, prompt].join("") }],
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json',
+    const chatGPT = true;
+    const huggingFace = false;
+
+    if (chatGPT) {
+        const apiKey = process.env.GPT_API_KEY;
+        try {
+            let query = 
+            `Generate JSON for a Magic: The Gathering Card in the following format using plaintext. Add no other information.
+            {"name": "Brotherhood Scribe",
+            "manaCost": "{1}{W}",
+            "type": "Creature Human Artificer",
+            "subtypes": "Human, Artificer",
+            "keywords": "Metalcraft",
+            "text": "Card Text",
+            "flavorText": "I'm a cool guy!",
+            "power": "1",
+            "toughness": "3",
+            "rarity": "rare",
+            "types": "Creature"} 
+            Generate it with the following name: [${prompt}].
+            Generate it with the following type: [${type}]`
+            
+            const response = await axios.post(
+                'https://api.openai.com/v1/chat/completions',
+                {
+                    model: 'gpt-4o-mini', // or the model you are using
+                    messages: [{ role: 'user', content: [query, prompt].join("") }],
                 },
-            }
-        );
+                {
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
 
-        let reply = response.data.choices[0].message.content;
+            let reply = response.data.choices[0].message.content; //Currently broken usually cause GPT keeps messing with me
+            reply = reply.replace((/  |\r\n|\n|\r/gm),"");
+            reply = reply.replace(/```json|```/g, '').trim();
+            reply = reply.replace(/'/g, '');
+            //console.log(reply)
+            
+            const cardJSON = JSON.parse(reply);
+            
 
-        console.log(reply)
-        
-        const cardJSON = JSON.parse(reply.replace("'", "")); //bandaid fix
-        
-        await sql.connect(dbConfig);
-        const sqlRequest = new sql.Request();
-        const sqlResult = await sqlRequest.query(`INSERT INTO [dbo].[Artifact] (name, manaCost, type, subtypes, keywords, text, flavorText, power, toughness, rarity, types, custom) OUTPUT inserted.id VALUES ('${cardJSON.name}', '${cardJSON.manaCost}', '${cardJSON.type}', '${cardJSON.subtypes}', '${cardJSON.keywords}', '${cardJSON.text}', '${cardJSON.flavorText}', '${cardJSON.power}', '${cardJSON.toughness}', '${cardJSON.rarity}', '${cardJSON.types}', (1))`);
-        id = await sqlResult.recordset[0].id
-        await sqlRequest.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('Generate', '${id}', null, (getdate()))`);
-        
-        cardJSON["id"] = id;
-        console.log("ID: ", cardJSON.id)
-        res.send(cardJSON);
-    } catch (error) {
-        console.error('Error querying ChatGPT:', error);
-        res.status(500).send({ error: 'Error querying ChatGPT' });
+            await sql.connect(dbConfig);
+            const sqlRequest = new sql.Request();
+            const sqlResult = await sqlRequest.query(`INSERT INTO [dbo].[${type}] (name, manaCost, type, subtypes, keywords, text, flavorText, power, toughness, rarity, types, custom) OUTPUT inserted.id VALUES ('${cardJSON.name}', '${cardJSON.manaCost}', '${cardJSON.type}', '${cardJSON.subtypes}', '${cardJSON.keywords}', '${cardJSON.text}', '${cardJSON.flavorText}', '${cardJSON.power}', '${cardJSON.toughness}', '${cardJSON.rarity}', '${cardJSON.types}', (1))`);
+            id = await sqlResult.recordset[0].id
+            await sqlRequest.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('Generate', '${id}', null, (getdate()))`);
+            
+            cardJSON["id"] = id;
+            //console.log("ID: ", cardJSON.id)
+            res.send(cardJSON);
+        } catch (error) {
+            console.error('Error querying ChatGPT:', error);
+            res.status(500).send({ error: 'Error querying ChatGPT' });
+        }
     }
+
+    else if (huggingFace) {
+        const apiKey = process.env.HUG_API_KEY;
+        try {
+            let query = `${prompt}`; // Construct your query or input here
+            console.log(`HuggingFace: Running prompt ${query}`)
+            
+            const response = await axios.post(
+                'https://api-inference.huggingface.co/models/nightmarebleeds/Sparkcasterv3',
+                {
+                    inputs: query,
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`, // Replace with your Hugging Face API token
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+    
+            let reply = response.data[0].generated_text; // Access the generated text from the response
+            reply = reply.replace((/  |\r\n|\n|\r/gm), "");
+            reply = reply.replace(/```json|```/g, '').trim();
+            reply = reply.replace(/'/g, '');
+            console.log(reply);
+            
+            const cardJSON = JSON.parse(reply);
+    
+            await sql.connect(dbConfig);
+            const sqlRequest = new sql.Request();
+            const sqlResult = await sqlRequest.query(`INSERT INTO [dbo].[${type}] (name, manaCost, type, subtypes, keywords, text, flavorText, power, toughness, rarity, types, custom) OUTPUT inserted.id VALUES ('${cardJSON.name}', '${cardJSON.manaCost}', '${cardJSON.type}', '${cardJSON.subtypes}', '${cardJSON.keywords}', '${cardJSON.text}', '${cardJSON.flavorText}', '${cardJSON.power}', '${cardJSON.toughness}', '${cardJSON.rarity}', '${cardJSON.types}', (1))`);
+            id = await sqlResult.recordset[0].id;
+            await sqlRequest.query(`INSERT INTO [dbo].[Log] (QueryType, CardID, VoteType, CreatedAt) VALUES ('Generate', '${id}', null, (getdate()))`);
+            
+            cardJSON["id"] = id;
+            console.log("ID: ", cardJSON.id);
+            res.send(cardJSON);
+        } catch (error) {
+            console.error('Error querying Huggingface:', error);
+            res.status(500).send({ error: 'Error querying Huggingface' });
+        }
+    }
+    
+
 });

@@ -5,6 +5,13 @@
     padding:0px;
 }
 
+.heading img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width:10%
+}
+
 h1 {
     color: white;
     text-align: center;
@@ -36,24 +43,38 @@ label {
     justify-content: center;
 }
 
+
 .displayBox {
-    border: 5px outset white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;     
+    border: 3px solid white;
     background-color: black;
     width: 50%;
-    flex-direction: column;
-    text-align: center;
-    max-height: 100%;
+    height: 50vh;
 }
 
 .displayBox img {
-    width: auto;
-    height: auto;
     max-width: 100%;
     max-height: 100%;
-    justify-self: center;
+    margin: auto;
+    object-fit: contain;
+}
+
+.displayBox p {
+    max-width: 100%;
+    max-height: 100%;
+    margin: auto;
+    object-fit: contain;
+    text-align: center;
 }
 
 .buttons {
     text-align: center;
 }
 
+footer {
+    display: block;
+    text-align: center;
+}

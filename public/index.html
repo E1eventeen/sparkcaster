@@ -7,12 +7,15 @@
     <title>SparkCaster</title>
     <script src="script.js"></script>
     <div class = heading>
-        <h1>SparkCaster</h1>
+        <img src="sparkLogo.png", alt="SparkCaster">
+        <!--<h1>SparkCaster</h1>-->
     </div>
 </head>
 <body>
     <div class="display">
-        <div class="displayBox", id = "imageBox", style="display: block;">
+        <div class="displayBox", id = "upvoteBox"></div>
+
+        <div class="displayBox", id = "imageBox">
             <img src="blankCard.png" alt="Blank Card", id="cardImage">
         </div>
         <div class="displayBox", id = "textBox", style="display: none;">
@@ -31,8 +34,10 @@
             <p>Votes: <span id="votes">Blank</span></p>
         </div>
         <div class="displayBox", id = "loadingBox", style="display:none;">
-            <p>Loading</p>
+            <p>Loading...</p>
         </div>
+
+        <div class="displayBox", id = "upvoteBox"></div>
     </div>
     <div class = "buttons">
         <button id="new" onclick="loadCard()">New Card</button>
@@ -40,6 +45,7 @@
         <button id="down" onclick="voteDown()">Vote Down</button>
         <button id="toggleText" onclick="toggleText()">Show Text</button>
         <button id="cleanup" onclick="cleanUp()">Clean Files</button>
+        <button id="refreshArt" onclick="loadCard(id)">Refresh Art</button>
         <br><br>
         <div class = "generateButtons">
             <label for="selectType">Card Type:</label>
@@ -60,6 +66,8 @@
 </body>
 <footer>
     <script> loadCard() </script> <!--Load image on startup-->
-    <p>© 2024 Sparkcaster. Created by Jadon Watson and Kyle Meade. This project is based on Magic: The Gathering, and is not intended to infringe on any copyrights. Sparkcaster is a capstone project for Wentworth Institute of Technology.</p>
+    <p>&copy; 2024 Kyle Meade & Jadon Watson. Capstone Project at Wentworth Institute of Technology.</p>
+    <p>All Magic: The Gathering cards are generated using LLM models.</p>
+    <p>Magic: The Gathering and its trademarks are the property of Wizards of the Coast.</p>
   </footer>  
 </html>
