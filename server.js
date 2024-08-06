@@ -67,8 +67,12 @@ app.get('/votes', async (req, res) => {
 
 //upVote based on ID value
 app.post('/upvote', async (req, res) => {
-    const { id } = req.body;
-    const { type } = req.body;
+    const id = req.body.id;
+    const type = req.body.type;
+
+    console.log(`ID: "${id}"`);
+    console.log(`Type: "${type}"`);
+
     if (!id) {
         return res.status(400).send('Card is required');
     }
@@ -90,8 +94,9 @@ app.post('/upvote', async (req, res) => {
 
 //downVote based on ID value
 app.post('/downvote', async (req, res) => {
-    const { id } = req.body;
-    const { type } = req.body;
+    //console.log(req)
+    const id = req.body.id;
+    const type = req.body.type;
     if (!id) {
         return res.status(400).send('Card is required');
     }
@@ -134,7 +139,7 @@ app.post('/runPython', async (req, res) => {
 });
 
 app.get('/cleanup', (req, res) => {
-    const directoryPath = path.join(__dirname, 'public//cards//');
+    const directoryPath = path.join(__dirname, 'public', 'cards');
 
     fs.readdir(directoryPath, (err, files) => {
         if (err) {
@@ -144,14 +149,16 @@ app.get('/cleanup', (req, res) => {
         }
 
         files.forEach(file => {
-            const filePath = path.join(directoryPath, file);
-            fs.unlink(filePath, err => {
-                if (err) {
-                    console.error(`Error deleting file: ${filePath}`);
-                } else {
-                    //console.log(`Deleted file: ${filePath}`);
-                }
-            });
+            if (path.extname(file).toLowerCase() === '.png') {
+                const filePath = path.join(directoryPath, file);
+                fs.unlink(filePath, err => {
+                    if (err) {
+                        console.error(`Error deleting file: ${filePath}`);
+                    } else {
+                        //console.log(`Deleted file: ${filePath}`);
+                    }
+                });
+            }
         });
 
         res.send('Cleanup completed');
@@ -169,8 +176,8 @@ app.listen(port, () => {
 });
 
 app.post('/generate', async (req, res) => {
-    let { prompt } = req.body;
-    let { type } = req.body;
+    let prompt = req.body.prompt;
+    let type = req.body.type;
     
     //console.log(prompt)
     //console.log(type)

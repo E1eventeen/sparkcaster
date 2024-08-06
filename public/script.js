@@ -9,6 +9,8 @@ function voteUp() {
         return;
     }
 
+    const type = card.types
+
     fetch('/upvote', {
         method: 'POST',
         headers: {
