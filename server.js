@@ -70,8 +70,8 @@ app.post('/upvote', async (req, res) => {
     const id = req.body.id;
     const type = req.body.type;
 
-    console.log(`ID: "${id}"`);
-    console.log(`Type: "${type}"`);
+    //console.log(`ID: "${id}"`);
+    //console.log(`Type: "${type}"`);
 
     if (!id) {
         return res.status(400).send('Card is required');
@@ -122,20 +122,57 @@ app.post('/runPython', async (req, res) => {
     const cardInfo = JSON.stringify(req.body); 
     //console.log(`RunPythonX: [${cardInfo}]`)
     
-    const pythonProcess = spawn('python3', ['cardGeneration\\cardImage.py', cardInfo]);             //Spawn Child Process
-    pythonProcess.stdout.on('data', (data) => {                                                     //Success Case
-        res.send(data.toString());
-    });
+    const python = false;
+    if (python) {
+        const pythonProcess = spawn('python3', ['cardGeneration\\cardImage.py', cardInfo]);             //Spawn Child Process
+        pythonProcess.stdout.on('data', (data) => {                                                     //Success Case
+            res.send(data.toString());
+        });
 
-    pythonProcess.stderr.on('data', (data) => {                                                     //Error Case
-        console.log(data.toString());
-        console.error(`stderr: ${data}`);
-        res.status(500).send(data.toString());
-    });
+        pythonProcess.stderr.on('data', (data) => {                                                     //Error Case
+            console.log(data.toString());
+            console.error(`stderr: ${data}`);
+            res.status(500).send(data.toString());
+        });
 
-    pythonProcess.on('close', (code) => {                                                           //Finally
-        //console.log("Image Generated!");
-    });
+        pythonProcess.on('close', (code) => {                                                           //Finally
+            //console.log("Image Generated!");
+        });
+    }
+    else {
+        const path = require('path');
+        const generateImage = require('./CardGeneration/generateImage');
+
+        /*const data = {
+            "id": "example-card",
+            "name": "Example Card",
+            "type": "Creature",
+            "keywords": ["Flying", "Trample"],
+            "text": "When this creature enters the battlefield, draw a card.",
+            "flavorText": "Just an example.",
+            "power": "3",
+            "toughness": "4",
+            "manaCost": "3RR"
+        };*/
+
+        const data = JSON.parse(cardInfo)
+    
+        // Ensure the output directory exists
+        const outputDir = path.join(__dirname, 'public', 'cards');
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+    
+        const outputFilePath = path.join(outputDir, `${data.id}.png`);
+        try {
+            const resultPath = await generateImage(JSON.stringify(data), false, outputFilePath);
+            //console.log(`Image generated at: ${resultPath}`);
+            res.send("No errors! :)");
+
+        } catch (error) {
+            console.error('Error generating image:', error);
+        }
+    }
 });
 
 app.get('/cleanup', (req, res) => {
